@@ -16,18 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from coursework.auth_views import RegisterUserView, VerifyEmailView # Import your new views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # JWT Authentication Endpoints
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'), # This is your Login URL
+    # Auth Endpoints
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
-    # Your Notesroom Apps
+    # Registration & Verification Endpoints
+    path('api/register/', RegisterUserView.as_view(), name='register'),
+    path('api/verify-email/', VerifyEmailView.as_view(), name='verify_email'),
+    
+    # Documents
     path('api/', include('coursework.urls')), 
 ]

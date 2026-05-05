@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from django.db import models
 from django.contrib.auth.models import User # 1. Import the User model
 
@@ -13,3 +15,12 @@ class Document(models.Model):
 
     def __str__(self):
         return f"{self.subject} - {self.title}"
+    
+class OTP(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        # Code expires after 10 minutes (600 seconds)
+        return (timezone.now() - self.created_at).total_seconds() < 600

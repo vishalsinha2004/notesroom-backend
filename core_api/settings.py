@@ -170,3 +170,12 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# Email Configuration (Brevo)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp-relay.brevo.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = os.environ.get('BREVO_SMTP_LOGIN')
+EMAIL_HOST_PASSWORD = os.environ.get('BREVO_SMTP_PASSWORD')
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'notesroomofficial@gmail.com'
