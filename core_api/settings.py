@@ -111,10 +111,14 @@ WSGI_APPLICATION = 'core_api.wsgi.application'
 # settings.py
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'postgres'),          # Grabs from Render
+        'USER': os.environ.get('DB_USER', 'postgres'),          # Grabs from Render
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),  # Grabs from Render
+        'HOST': os.environ.get('DB_HOST', 'localhost'),         # Grabs from Render
+        'PORT': os.environ.get('DB_PORT', '5432'),              # Grabs from Render
+    }
 }
 
 # Password validation
