@@ -182,9 +182,10 @@ SIMPLE_JWT = {
 
 # Email Configuration (Brevo)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp-relay.brevo.com'
-EMAIL_PORT = 587
+EMAIL_HOST = 'smtp-brevo.com'
+EMAIL_USE_TLS = False   # Change this to False
+EMAIL_USE_SSL = True    # Change this to True
+EMAIL_PORT = 465        # Change this to 465
 EMAIL_HOST_USER = os.environ.get('BREVO_SMTP_LOGIN')
 EMAIL_HOST_PASSWORD = os.environ.get('BREVO_SMTP_PASSWORD')
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'notesroomofficial@gmail.com'
+DEFAULT_FROM_EMAIL = os.environ.get('BREVO_SMTP_LOGIN')
