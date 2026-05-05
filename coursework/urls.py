@@ -3,7 +3,9 @@ from rest_framework.routers import DefaultRouter
 from .views import DocumentViewSet
 
 router = DefaultRouter()
-router.register(r'documents', DocumentViewSet)
+
+# ADD basename='document' right here:
+router.register(r'documents', DocumentViewSet, basename='document')
 
 urlpatterns = [
     path('', include(router.urls)),
