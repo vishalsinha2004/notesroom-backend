@@ -53,7 +53,7 @@ class RegisterUserView(APIView):
         )
 
         try:
-            api_instance.send_trans_email(send_smtp_email)
+            api_instance.send_transac_email(send_smtp_email)
             return Response({"message": "Verification code sent.", "email": email}, status=status.HTTP_201_CREATED)
         except ApiException as e:
             # If email fails, we should still return the response but maybe log the error
