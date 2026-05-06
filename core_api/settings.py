@@ -181,4 +181,4 @@ SIMPLE_JWT = {
 }
 
 # Email Configuration (Brevo)
-DEFAULT_FROM_EMAIL = os.environ.get('BREVO_SMTP_LOGIN')
+BREVO_API_KEY = os.getenv('BREVO_API_KEY')
