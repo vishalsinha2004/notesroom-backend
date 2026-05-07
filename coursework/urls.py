@@ -1,11 +1,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DocumentViewSet
+from .views import SemesterViewSet
 
 router = DefaultRouter()
-
-# ADD basename='document' right here:
-router.register(r'documents', DocumentViewSet, basename='document')
+router.register(r'semesters', SemesterViewSet, basename='semester')
 
 urlpatterns = [
     path('', include(router.urls)),

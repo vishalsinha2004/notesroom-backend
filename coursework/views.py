@@ -1,16 +1,10 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Document
-from .serializers import DocumentSerializer
+from .models import Semester
+from .serializers import SemesterSerializer
 
-class DocumentViewSet(viewsets.ModelViewSet):
+# Use ReadOnlyModelViewSet so users can fetch but NOT create/update/delete
+class SemesterViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
-    serializer_class = DocumentSerializer
-
-    # 1. Only return documents owned by the logged-in user
-    def get_queryset(self):
-        return Document.objects.filter(owner=self.request.user).order_by('-uploaded_at')
-
-    # 2. Automatically assign the logged-in user as the owner when uploading
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    queryset = Semester.objects.all().order_by('name')
+    serializer_class = SemesterSerializer

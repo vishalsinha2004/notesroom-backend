@@ -8,7 +8,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from .models import Document
 
-# Initialize Groq client
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 class ChatWithPDFView(APIView):
@@ -21,23 +20,23 @@ class ChatWithPDFView(APIView):
             return Response({"error": "Message is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # 1. Ensure the user owns this document
-            document = Document.objects.get(id=document_id, owner=request.user)
+            # FIXED: Removed 'owner=request.user' so students can read admin documents
+            document = Document.objects.get(id=document_id)
             
-            # 2. Extract text from the PDF
             pdf_text = ""
             with document.file.open('rb') as f:
                 reader = PyPDF2.PdfReader(f)
-                # Read up to the first 5 pages to avoid token limits on huge PDFs
-                num_pages = min(len(reader.pages), 5)
+                # Read up to the first 10 pages to give the AI more context
+                num_pages = min(len(reader.pages), 10)
                 for page_num in range(num_pages):
                     page = reader.pages[page_num]
-                    pdf_text += page.extract_text() + "\n"
+                    extracted = page.extract_text()
+                    if extracted:
+                        pdf_text += extracted + "\n"
 
-            # Truncate text just to be safe (roughly 6000 words limit for context)
+            # Truncate text just to be safe (roughly 6000 words limit for Groq Llama 3)
             pdf_text = pdf_text[:25000] 
 
-            # 3. Create the prompt for Llama 3
             system_prompt = f"""You are a helpful AI tutor for a student. 
             Answer their questions strictly based on the following document content.
             If the answer is not in the document, say "I cannot find that in the document."
@@ -46,19 +45,17 @@ class ChatWithPDFView(APIView):
             {pdf_text}
             """
 
-            # 4. Call Groq API
             chat_completion = client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
                 ],
                 model="llama-3.1-8b-instant",
-                temperature=0.3, # Keep it focused and analytical
+                temperature=0.3, 
                 max_tokens=1024,
             )
 
             ai_response = chat_completion.choices[0].message.content
-
             return Response({"reply": ai_response}, status=status.HTTP_200_OK)
 
         except Document.DoesNotExist:
