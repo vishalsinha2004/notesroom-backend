@@ -19,8 +19,8 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from coursework.ai_views import ChatWithPDFView
 
-# FIX: Import the exact class names used in auth_views.py
-from coursework.auth_views import RegisterView, VerifyOTPView 
+# Imported the new ResendOTPView here
+from coursework.auth_views import RegisterView, VerifyOTPView, ResendOTPView 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,9 +30,11 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # Registration & Verification Endpoints
-    # FIX: Point to the updated view classes and update the verify URL
     path('api/register/', RegisterView.as_view(), name='register'),
     path('api/verify-otp/', VerifyOTPView.as_view(), name='verify_email'),
+    
+    # NEW: Resend OTP Endpoint
+    path('api/resend-otp/', ResendOTPView.as_view(), name='resend_otp'),
     
     path('api/documents/<int:document_id>/chat/', ChatWithPDFView.as_view(), name='chat_with_pdf'),
     
