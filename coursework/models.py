@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from .utils import send_new_document_notification
 
 # 1. New Folder Structure Models
 class Semester(models.Model):
@@ -37,3 +40,13 @@ class OTP(models.Model):
     def is_valid(self):
         # Code expires after 10 minutes (600 seconds)
         return (timezone.now() - self.created_at).total_seconds() < 600
+    
+@receiver(post_save, sender=Document)
+def trigger_document_notification(sender, instance, created, **kwargs):
+    # 'created' is a boolean that is True ONLY when the document is first uploaded.
+    # This prevents sending emails again if you simply edit or rename the file later!
+    if created:
+        try:
+            send_new_document_notification(instance)
+        except Exception as e:
+            print(f"Failed to trigger email thread: {e}")
