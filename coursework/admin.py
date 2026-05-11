@@ -7,7 +7,8 @@ from .models import Document, Semester, Subject
 class DocumentInline(admin.TabularInline):
     model = Document
     extra = 1  # Shows one empty row by default to quickly upload a file
-    fields = ('title', 'file', 'owner')
+    # ADDED 'notify_users' HERE
+    fields = ('title', 'file', 'notify_users', 'owner')
     
 class SubjectInline(admin.TabularInline):
     model = Subject
@@ -31,9 +32,9 @@ class SubjectAdmin(admin.ModelAdmin):
 
 @admin.register(Document)
 class DocumentAdmin(admin.ModelAdmin):
-    # This gives you a master list of all files across all folders
-    list_display = ('title', 'subject', 'get_semester', 'uploaded_at', 'owner')
-    list_filter = ('subject__semester', 'subject', 'uploaded_at')
+    # ADDED 'notify_users' to the list display and filters
+    list_display = ('title', 'subject', 'get_semester', 'uploaded_at', 'notify_users', 'owner')
+    list_filter = ('subject__semester', 'subject', 'notify_users', 'uploaded_at')
     search_fields = ('title', 'subject__name')
     readonly_fields = ('uploaded_at',)
 

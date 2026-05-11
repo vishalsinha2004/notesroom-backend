@@ -119,6 +119,7 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),  # Grabs from Render
         'HOST': os.environ.get('DB_HOST', 'localhost'),         # Grabs from Render
         'PORT': os.environ.get('DB_PORT', '5432'),              # Grabs from Render
+        'DISABLE_SERVER_SIDE_CURSORS': True,
     }
 }
 
