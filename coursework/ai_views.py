@@ -62,3 +62,44 @@ class ChatWithPDFView(APIView):
             return Response({"error": "Document not found."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+## coursework/ai_views.py
+
+class GeneralChatView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user_message = request.data.get('message')
+        
+        if not user_message:
+            return Response({"error": "Message is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # --- UPDATED SYSTEM PROMPT ---
+            system_prompt = """You are a highly empathetic, smart, and friendly AI tutor for students using the Notesroom application. 
+            
+            CRITICAL INSTRUCTION: You must analyze the emotional tone of the user's prompt (e.g., happy, sad, frustrated, powerful, curious) and adapt your tone to match them. 
+            You MUST use highly relevant emojis naturally throughout your response to reflect this emotion:
+            - If the user's message is powerful, highly ambitious, or motivational, use emojis like 🚀, 💪, 🔥, 🌟, ⚡
+            - If the user is sad, stressed, or confused, be highly empathetic and use emojis like 💙, 🥺, 🫂, 🌱
+            - If the user is happy, excited, or joking, use joyful emojis like 🎉, ✨, 😊, 🤩
+            - For general educational questions, use relevant topic-based emojis (e.g., 💻 for coding, 📊 for data, 🌍 for geography).
+            
+            Answer their general questions accurately and concisely. Always format your responses using rich Markdown (bolding, lists, code blocks). Do not output raw HTML."""
+
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message}
+                ],
+                model="llama-3.1-8b-instant",
+                temperature=0.7, # Slightly increased temperature (0.7) makes the AI more creative with its emoji choices
+                max_tokens=1024,
+            )
+
+            ai_response = chat_completion.choices[0].message.content
+            return Response({"reply": ai_response}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

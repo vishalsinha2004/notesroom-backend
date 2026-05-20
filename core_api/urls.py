@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from coursework.ai_views import ChatWithPDFView
+from coursework.ai_views import ChatWithPDFView, GeneralChatView
 
 # Imported the new ResendOTPView here
 from coursework.auth_views import RegisterView, VerifyOTPView, ResendOTPView 
@@ -37,6 +37,8 @@ urlpatterns = [
     path('api/resend-otp/', ResendOTPView.as_view(), name='resend_otp'),
     
     path('api/documents/<int:document_id>/chat/', ChatWithPDFView.as_view(), name='chat_with_pdf'),
+
+    path('api/chat/', GeneralChatView.as_view(), name='general_chat'),
     
     # Documents
     path('api/', include('coursework.urls')), 
