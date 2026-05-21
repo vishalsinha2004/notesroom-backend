@@ -5,6 +5,7 @@ from rest_framework import status
 from django.contrib.auth.models import User
 from .models import OTP 
 from .utils import send_otp_via_brevo
+from rest_framework.permissions import IsAuthenticated
 
 class RegisterView(APIView):
     def post(self, request):
@@ -82,3 +83,13 @@ class ResendOTPView(APIView):
                 
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+class UserProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "username": user.username,
+            "email": user.email,
+        }, status=status.HTTP_200_OK)

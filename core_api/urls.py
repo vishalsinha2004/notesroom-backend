@@ -20,7 +20,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from coursework.ai_views import ChatWithPDFView, GeneralChatView
 
 # Imported the new ResendOTPView here
-from coursework.auth_views import RegisterView, VerifyOTPView, ResendOTPView 
+from coursework.auth_views import RegisterView, VerifyOTPView, ResendOTPView, UserProfileView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -39,6 +39,8 @@ urlpatterns = [
     path('api/documents/<int:document_id>/chat/', ChatWithPDFView.as_view(), name='chat_with_pdf'),
 
     path('api/chat/', GeneralChatView.as_view(), name='general_chat'),
+
+    path('api/profile/', UserProfileView.as_view(), name='user_profile'),
     
     # Documents
     path('api/', include('coursework.urls')), 
