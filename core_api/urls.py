@@ -20,7 +20,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from coursework.ai_views import ChatWithPDFView, GeneralChatView
 
 # Imported the new ResendOTPView here
-from coursework.auth_views import RegisterView, VerifyOTPView, ResendOTPView, UserProfileView
+from coursework.auth_views import RegisterView, VerifyOTPView, ResendOTPView, UserProfileView, GoogleLoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,7 +32,7 @@ urlpatterns = [
     # Registration & Verification Endpoints
     path('api/register/', RegisterView.as_view(), name='register'),
     path('api/verify-otp/', VerifyOTPView.as_view(), name='verify_email'),
-    
+    path('api/google-login/', GoogleLoginView.as_view(), name='google_login'),    
     # NEW: Resend OTP Endpoint
     path('api/resend-otp/', ResendOTPView.as_view(), name='resend_otp'),
     

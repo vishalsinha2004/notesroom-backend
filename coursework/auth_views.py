@@ -6,6 +6,10 @@ from django.contrib.auth.models import User
 from .models import OTP 
 from .utils import send_otp_via_brevo
 from rest_framework.permissions import IsAuthenticated
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from rest_framework_simplejwt.tokens import RefreshToken
+import os
 
 class RegisterView(APIView):
     def post(self, request):
@@ -93,3 +97,62 @@ class UserProfileView(APIView):
             "username": user.username,
             "email": user.email,
         }, status=status.HTTP_200_OK)
+    
+class GoogleLoginView(APIView):
+    def post(self, request):
+        # 1. Print the data React sent us (Great for debugging!)
+        print("DATA FROM REACT:", request.data) 
+        
+        token = request.data.get('token')
+        if not token:
+            print("ERROR: Token is missing!")
+            return Response({"error": "No token provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            client_id = os.environ.get('GOOGLE_CLIENT_ID')
+            print("DJANGO CLIENT ID IS:", client_id) 
+            
+            # --- THE MAGIC FIX IS HERE ---
+            # Added clock_skew_in_seconds=10 to forgive slight computer clock delays
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(), 
+                client_id,
+                clock_skew_in_seconds=10
+            )
+            
+            # 2. Extract User Info from the Validated Token
+            email = idinfo['email']
+            name = idinfo.get('name', '')
+            
+            # 3. Get or create the user in your database
+            user, created = User.objects.get_or_create(email=email, defaults={
+                'username': email,
+                'is_active': True # Google users are pre-verified
+            })
+            
+            # If a user registered manually but never verified their OTP, activate them now
+            if not user.is_active:
+                user.is_active = True
+                user.save()
+            
+            # 4. Generate your application's JWT tokens
+            refresh = RefreshToken.for_user(user)
+            
+            print(f"SUCCESS! Logged in user: {email}")
+            
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'is_new_user': created,
+                'message': 'Google authentication successful.'
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            # 5. Print the EXACT reason Google rejected it
+            print("GOOGLE REJECTED TOKEN BECAUSE:", str(e)) 
+            return Response({"error": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            print("SERVER ERROR:", str(e))
+            return Response({"error": "An unexpected error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
