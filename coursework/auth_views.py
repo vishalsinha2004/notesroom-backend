@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import OTP 
+from .models import OTP, UserProfile 
 from .utils import send_otp_via_brevo
 from rest_framework.permissions import IsAuthenticated
 from google.oauth2 import id_token
@@ -15,12 +15,19 @@ class RegisterView(APIView):
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
+        name = request.data.get('name', '')  # <--- 1. Grab the name from React
         
         if User.objects.filter(email=email).exists():
             return Response({"error": "Email already registered."}, status=status.HTTP_400_BAD_REQUEST)
         
         # Create user but mark as inactive until verified
         user = User.objects.create_user(username=email, email=email, password=password)
+        
+        # --- NEW: Save their real name! ---
+        if name:
+            user.first_name = name
+        # ----------------------------------
+        
         user.is_active = False 
         user.save()
         
@@ -44,20 +51,29 @@ class VerifyOTPView(APIView):
         
         try:
             user = User.objects.get(email=email)
-            # Get the most recently generated OTP for this user
             otp_record = OTP.objects.filter(user=user).last() 
             
             if otp_record and otp_record.code == otp_code:
                 user.is_active = True
                 user.save()
-                otp_record.delete() # Clean up OTP after successful use
-                return Response({"message": "Email verified successfully. You can now login."}, status=status.HTTP_200_OK)
+                otp_record.delete() 
+                
+                # --- NEW CODE: GENERATE TOKENS ---
+                # Now that they are verified, log them in immediately!
+                refresh = RefreshToken.for_user(user)
+                
+                return Response({
+                    "message": "Email verified successfully.",
+                    "access": str(refresh.access_token),  # Send Access Token
+                    "refresh": str(refresh)               # Send Refresh Token
+                }, status=status.HTTP_200_OK)
+                # ---------------------------------
+                
             else:
                 return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
                 
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
 # --- NEW VIEW FOR RESENDING OTP ---
 class ResendOTPView(APIView):
     def post(self, request):
@@ -93,14 +109,24 @@ class UserProfileView(APIView):
 
     def get(self, request):
         user = request.user
+        
+        # Safely fetch the picture if the profile exists
+        picture_url = None
+        if hasattr(user, 'profile'):
+            picture_url = user.profile.profile_picture
+
+        # THE FIX: If the user has a first_name (from Google), use that! 
+        # Otherwise, fall back to the username.
+        display_name = user.first_name if user.first_name else user.username
+
         return Response({
-            "username": user.username,
+            "username": display_name, # Send the beautiful display name!
             "email": user.email,
-        }, status=status.HTTP_200_OK)
+            "profile_picture": picture_url
+        }, status=status.HTTP_200_OK)   
     
 class GoogleLoginView(APIView):
     def post(self, request):
-        # 1. Print the data React sent us (Great for debugging!)
         print("DATA FROM REACT:", request.data) 
         
         token = request.data.get('token')
@@ -112,8 +138,6 @@ class GoogleLoginView(APIView):
             client_id = os.environ.get('GOOGLE_CLIENT_ID')
             print("DJANGO CLIENT ID IS:", client_id) 
             
-            # --- THE MAGIC FIX IS HERE ---
-            # Added clock_skew_in_seconds=10 to forgive slight computer clock delays
             idinfo = id_token.verify_oauth2_token(
                 token, 
                 google_requests.Request(), 
@@ -124,22 +148,37 @@ class GoogleLoginView(APIView):
             # 2. Extract User Info from the Validated Token
             email = idinfo['email']
             name = idinfo.get('name', '')
+            picture = idinfo.get('picture', '')
             
-            # 3. Get or create the user in your database
+            # 3. Get or create the user (ONLY core fields in defaults)
             user, created = User.objects.get_or_create(email=email, defaults={
                 'username': email,
-                'is_active': True # Google users are pre-verified
             })
             
-            # If a user registered manually but never verified their OTP, activate them now
+            # --- THE FIX IS HERE ---
+            # Force update the user's name every time they log in
+            # This fixes old accounts that were created before we added the name logic!
+            if name:
+                user.first_name = name
+                
+            # Make sure they are active
             if not user.is_active:
                 user.is_active = True
-                user.save()
+                
+            # Save the changes to the database!
+            user.save()
+            # -----------------------
             
+            # Save the profile picture to our new table
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            if picture:
+                profile.profile_picture = picture
+                profile.save()
+
             # 4. Generate your application's JWT tokens
             refresh = RefreshToken.for_user(user)
             
-            print(f"SUCCESS! Logged in user: {email}")
+            print(f"SUCCESS! Logged in user: {email} with name {name}")
             
             return Response({
                 'access': str(refresh.access_token),
@@ -149,7 +188,6 @@ class GoogleLoginView(APIView):
             }, status=status.HTTP_200_OK)
             
         except ValueError as e:
-            # 5. Print the EXACT reason Google rejected it
             print("GOOGLE REJECTED TOKEN BECAUSE:", str(e)) 
             return Response({"error": "Invalid Google token"}, status=status.HTTP_400_BAD_REQUEST)
             

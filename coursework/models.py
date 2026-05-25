@@ -54,4 +54,10 @@ def trigger_document_notification(sender, instance, created, **kwargs):
             send_new_document_notification(instance)
         except Exception as e:
             print(f"Failed to trigger email thread: {e}")
-            
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    profile_picture = models.URLField(max_length=500, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
