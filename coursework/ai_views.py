@@ -20,13 +20,11 @@ class ChatWithPDFView(APIView):
             return Response({"error": "Message is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # FIXED: Removed 'owner=request.user' so students can read admin documents
             document = Document.objects.get(id=document_id)
             
             pdf_text = ""
             with document.file.open('rb') as f:
                 reader = PyPDF2.PdfReader(f)
-                # Read up to the first 10 pages to give the AI more context
                 num_pages = min(len(reader.pages), 10)
                 for page_num in range(num_pages):
                     page = reader.pages[page_num]
@@ -34,13 +32,19 @@ class ChatWithPDFView(APIView):
                     if extracted:
                         pdf_text += extracted + "\n"
 
-            # Truncate text just to be safe (roughly 6000 words limit for Groq Llama 3)
             pdf_text = pdf_text[:25000] 
 
-            system_prompt = f"""You are a helpful AI tutor for a student. 
-            Answer their questions strictly based on the following document content.
-            If the answer is not in the document, say "I cannot find that in the document."
-            
+            # UPDATED: High-power prompt for structured, diagram-rich, and accurate PDF extraction
+            system_prompt = f"""You are a brilliant, highly analytical, and engaging AI tutor. Your primary goal is to provide immensely powerful and clear answers based strictly on the provided document.
+
+            CRITICAL INSTRUCTIONS:
+            1. ACCURACY FIRST: Answer purely based on the DOCUMENT CONTENT below. If the answer isn't there, firmly but politely state: "I cannot find that in the document."
+            2. POWERFUL FLOW: Structure your response perfectly. Start with a direct answer -> Detailed explanation -> Real-world/practical examples (derived from the text) -> Empowering summary.
+            3. ATTRACTIVE FORMATTING: Use rich Markdown heavily. Use headers (###), bold text for keywords, and bullet points to break down complex ideas.
+            4. DIAGRAMS & VISUALS: Whenever explaining a process, relationship, or architecture found in the document, you MUST include a Mermaid.js flowchart (enclosed in ```mermaid ... ```).
+            5. STRICT MERMAID RULES: You MUST use exact, valid Mermaid syntax. Use `-->` for solid links. Use `-.->` for dotted links. NEVER use invalid arrows like `|>`, `->`, or `=>`. Do not use special characters in node definitions unless wrapped in quotes.
+            6. EXAMPLES: Always pull or extrapolate at least one clear, concrete example based on the text to ensure the user fully understands the concept.
+
             DOCUMENT CONTENT:
             {pdf_text}
             """
@@ -51,8 +55,8 @@ class ChatWithPDFView(APIView):
                     {"role": "user", "content": user_message}
                 ],
                 model="llama-3.1-8b-instant",
-                temperature=0.3, 
-                max_tokens=1024,
+                temperature=0.3, # Keep this low to maintain high accuracy with the PDF context
+                max_tokens=2048, # Increased to allow room for diagrams and examples
             )
 
             ai_response = chat_completion.choices[0].message.content
@@ -64,8 +68,6 @@ class ChatWithPDFView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-## coursework/ai_views.py
-
 class GeneralChatView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -76,26 +78,35 @@ class GeneralChatView(APIView):
             return Response({"error": "Message is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # --- UPDATED SYSTEM PROMPT ---
-            system_prompt = """You are a highly empathetic, smart, and friendly AI tutor for students using the Notesroom application. 
+            # UPDATED: High-power prompt for empathetic, beautifully structured general chat
+            system_prompt = """You are a highly empathetic, brilliant, and powerful AI tutor for students using the Notesroom application. 
             
-            CRITICAL INSTRUCTION: You must analyze the emotional tone of the user's prompt (e.g., happy, sad, frustrated, powerful, curious) and adapt your tone to match them. 
-            You MUST use highly relevant emojis naturally throughout your response to reflect this emotion:
-            - If the user's message is powerful, highly ambitious, or motivational, use emojis like 🚀, 💪, 🔥, 🌟, ⚡
-            - If the user is sad, stressed, or confused, be highly empathetic and use emojis like 💙, 🥺, 🫂, 🌱
-            - If the user is happy, excited, or joking, use joyful emojis like 🎉, ✨, 😊, 🤩
-            - For general educational questions, use relevant topic-based emojis (e.g., 💻 for coding, 📊 for data, 🌍 for geography).
-            
-            Answer their general questions accurately and concisely. Always format your responses using rich Markdown (bolding, lists, code blocks). Do not output raw HTML."""
+            CRITICAL INSTRUCTIONS FOR EVERY RESPONSE:
+            1. EMOTIONAL INTELLIGENCE: Analyze the user's emotional tone and match it using highly relevant emojis:
+               - Powerful/Ambitious: 🚀, 💪, 🔥, 🌟, ⚡
+               - Confused/Stressed: 💙, 🥺, 🫂, 🌱, 💡
+               - Happy/Excited: 🎉, ✨, 😊, 🤩
+            2. ATTRACTIVE FORMATTING: Your answers must be visually stunning. Use beautiful Markdown styling (headers, bolding, italics, blockquotes, and ordered/unordered lists). Do not output raw HTML.
+            3. PROPER FLOW: Use the following structure for educational queries:
+               - Hook/Greeting (match the emotion)
+               - Core Explanation (clear, concise, accurate)
+               - Detailed Examples (always provide 1-2 real-world, concrete examples to cement the idea)
+               - Visual/Diagram (see below)
+               - Conclusion/Next Steps (motivational wrap-up)
+            4. DIAGRAMS: If the question involves a system, workflow, cycle, step-by-step process, or relationships, YOU MUST generate a Mermaid.js diagram (enclosed in ```mermaid ... ``` code blocks).
+            5. STRICT MERMAID SYNTAX: You MUST use perfectly valid Mermaid.js syntax. Always start with `flowchart TD` or `flowchart LR`. Use ONLY `-->` for solid arrows and `-.->` for dotted arrows. NEVER use `|>`, `=>`, or `->`. Keep node labels simple.
+            6. EXAMPLES ARE MANDATORY: Never explain a theory without grounding it in a practical, easy-to-understand example.
 
+            Be powerful, inspiring, and incredibly helpful!"""
             chat_completion = client.chat.completions.create(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
                 ],
-                model="llama-3.1-8b-instant",
-                temperature=0.7, # Slightly increased temperature (0.7) makes the AI more creative with its emoji choices
-                max_tokens=1024,
+                # 🔥 UPGRADED TO THE 70B MODEL 🔥
+                model="llama-3.3-70b-versatile",
+                temperature=0.7, 
+                max_tokens=2048,
             )
 
             ai_response = chat_completion.choices[0].message.content
