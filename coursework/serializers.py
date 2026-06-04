@@ -21,3 +21,9 @@ class SemesterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Semester
         fields = ['id', 'name', 'subjects']
+
+
+class DocumentUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Document
+        fields = ['title', 'file', 'subject', 'notify_users']
